@@ -1,1 +1,1 @@
-openmsistream>=1.8.4.1
+openmsistream>=1.8.5
