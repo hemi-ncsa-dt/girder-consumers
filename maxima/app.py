@@ -11,7 +11,7 @@ class MaximaGirderUploader(GirderUploadStreamProcessor):
     def _process_downloaded_data_file(self, datafile, lock):
         metadata = {}
         parts = datafile.full_filepath.parts
-        filename = datafile.full_filepath.name
+        filename = datafile.full_filepath.name.lower()
         try:
             target_index = parts.index("automatic_mode") + 1
             result = parts[target_index]
