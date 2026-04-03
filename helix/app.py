@@ -9,18 +9,20 @@ igsn_pattern = re.compile(r"^[A-Z]{6}[0-9]{5}[A-Z0-9\-]*$", re.IGNORECASE)
 
 class HelixGirderUploader(GirderUploadStreamProcessor):
     def _process_downloaded_data_file(self, datafile, lock):
-        metadata = None
+        metadata = {}
+        if datafile.full_filepath.suffix.lower() == ".csv":
+            metadata["data_type"] = "pdv_trace"
         filename = datafile.full_filepath.name
         try:
             igsn = filename.split("_")[0].upper()
             if igsn_pattern.match(igsn):
-                metadata = {"igsn": igsn}
+                metadata["igsn"] = igsn
         except Exception as exc:
             msg = f"Error processing file path for metadata extraction: {exc}"
             self.logger.error(msg, exc_info=exc)
             pass
         return self._GirderUploadStreamProcessor__process_downloaded_data_file(
-            datafile, metadata=metadata
+            datafile, metadata=metadata or None
         )
 
 
