@@ -1,5 +1,7 @@
 import os
 import re
+
+import pandas as pd
 from openmsistream.girder.girder_upload_stream_processor import (
     GirderUploadStreamProcessor,
 )
@@ -9,18 +11,28 @@ igsn_pattern = re.compile(r"^[A-Z]{6}[0-9]{5}[A-Z0-9\-]*$", re.IGNORECASE)
 
 class HelixOtherDataGirderUploader(GirderUploadStreamProcessor):
     def _process_downloaded_data_file(self, datafile, lock):
-        metadata = None
-        parts = datafile.full_filepath.parts
+        metadata = {}
         try:
-            first_folder = parts[1] if datafile.full_filepath.is_absolute() else parts[0]
-            if igsn_pattern.match(first_folder):
-                metadata = {"igsn": first_folder.upper()}
+            for part in datafile.full_filepath.parts:
+                if igsn := igsn_pattern.match(part):
+                    metadata["igsn"] = igsn.group(0).upper()
+                    break
+            suffix = datafile.full_filepath.suffix.lower()
+            df = None
+            if suffix == ".csv":
+                df = pd.read_csv(datafile.full_filepath)
+            elif suffix in [".xls", ".xlsx"]:
+                df = pd.read_excel(datafile.full_filepath)
+
+            if df is not None:
+                if "Sample_IGSN" in df.columns and "PDF_FileName" in df.columns:
+                    metadata["data_type"] = "pdv_experiment_log"
         except Exception as exc:
             msg = f"Error processing file path for metadata extraction: {exc}"
             self.logger.error(msg, exc_info=exc)
             pass
         return self._GirderUploadStreamProcessor__process_downloaded_data_file(
-            datafile, metadata=metadata
+            datafile, metadata=metadata or None
         )
 
 

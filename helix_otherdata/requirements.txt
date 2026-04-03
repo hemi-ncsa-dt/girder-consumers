@@ -1,1 +1,3 @@
 openmsistream>=1.8.5
+pandas
+openpyxl
