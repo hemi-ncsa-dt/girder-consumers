@@ -45,7 +45,7 @@ def main():
     topic_name = os.getenv("TOPIC_NAME")
     heartbeat_topic_name = os.getenv("HEARTBEAT_TOPIC_NAME")
     heartbeat_program_id = os.getenv("HEARTBEAT_PROGRAM_ID")
-    replace_existing = os.getenv("REPLACE_EXISTING", "false").lower() == "true"
+    replace_existing = os.getenv("REPLACE_EXISTING", "true").lower() == "true"
 
     girder_uploader = HelixOtherDataGirderUploader(
         girder_api_url,
