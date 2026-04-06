@@ -45,6 +45,7 @@ def main():
     topic_name = os.getenv("TOPIC_NAME")
     heartbeat_topic_name = os.getenv("HEARTBEAT_TOPIC_NAME")
     heartbeat_program_id = os.getenv("HEARTBEAT_PROGRAM_ID")
+    replace_existing = os.getenv("REPLACE_EXISTING", "false").lower() == "true"
 
     girder_uploader = HelixOtherDataGirderUploader(
         girder_api_url,
@@ -56,6 +57,7 @@ def main():
         heartbeat_program_id=heartbeat_program_id,
         heartbeat_interval_secs=120,
         mode=mode,
+        replace_existing=replace_existing,
     )
     msg = (
         f"Listening to the {topic_name} topic for files to upload to "
