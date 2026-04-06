@@ -56,6 +56,7 @@ def main():
         heartbeat_program_id=heartbeat_program_id,
         heartbeat_interval_secs=120,
         mode=mode,
+        replace_existing=True,
     )
     msg = (
         f"Listening to the {topic_name} topic for files to upload to "
