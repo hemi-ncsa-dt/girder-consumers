@@ -25,7 +25,9 @@ class HelixOtherDataGirderUploader(GirderUploadStreamProcessor):
                 df = pd.read_excel(datafile.full_filepath)
 
             if df is not None:
-                if "Sample_IGSN" in df.columns and "PDF_FileName" in df.columns:
+                if (
+                    "Sample_IGSN" in df.columns or "Sample_ID" in df.columns
+                ) and "PDV_FileName" in df.columns:
                     metadata["data_type"] = "pdv_experiment_log"
         except Exception as exc:
             msg = f"Error processing file path for metadata extraction: {exc}"
