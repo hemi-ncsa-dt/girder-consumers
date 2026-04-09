@@ -1,5 +1,7 @@
 import os
 import re
+
+import dateutil.parser
 from openmsistream.girder.girder_upload_stream_processor import (
     GirderUploadStreamProcessor,
 )
@@ -15,7 +17,16 @@ class MaximaGirderUploader(GirderUploadStreamProcessor):
         try:
             target_index = parts.index("automatic_mode") + 1
             result = parts[target_index]
-            igsn = result.split("_")[0].upper()
+            igsn, _, _, _, date, time = result.split("_")
+            igsn = igsn.upper()
+            try:
+                metadata["exp_datetime"] = dateutil.parser.parse(
+                    f"{date} {time.replace('-', ':')}+00:00"
+                ).isoformat()
+            except Exception as exc:
+                msg = f"Error parsing date and time from file path: {exc}"
+                self.logger.error(msg, exc_info=exc)
+
             if filename == "instructions.txt":
                 metadata["data_type"] = "xrd_metadata"
             elif filename.endswith(".h5"):
