@@ -20,7 +20,7 @@ class MaximaGirderUploader(GirderUploadStreamProcessor):
             igsn, _, _, _, date, time = result.split("_")
             igsn = igsn.upper()
             try:
-                metadata["exp_datetime"] = dateutil.parser.parse(
+                metadata["experiment_date"] = dateutil.parser.parse(
                     f"{date} {time.replace('-', ':')}+00:00"
                 ).isoformat()
             except Exception as exc:

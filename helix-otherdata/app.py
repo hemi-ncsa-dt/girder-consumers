@@ -1,12 +1,27 @@
 import os
 import re
 
+import dateutil.parser
 import pandas as pd
 from openmsistream.girder.girder_upload_stream_processor import (
     GirderUploadStreamProcessor,
 )
 
 igsn_pattern = re.compile(r"^[A-Z]{6}[0-9]{5}[A-Z0-9\-]*$", re.IGNORECASE)
+
+
+def parse_date(folder_name, logger):
+    metadata = {}
+    try:
+        igsn, _, _, _, date, time = folder_name.split("_")
+        metadata["experiment_date"] = dateutil.parser.parse(
+            f"{date} {time.replace('-', ':')}+00:00"
+        ).isoformat()
+    except Exception as exc:
+        msg = f"Error parsing date and time from file path: {exc}"
+        logger.error(msg, exc_info=exc)
+    finally:
+        return metadata
 
 
 class HelixOtherDataGirderUploader(GirderUploadStreamProcessor):
@@ -16,6 +31,7 @@ class HelixOtherDataGirderUploader(GirderUploadStreamProcessor):
             for part in datafile.full_filepath.parts:
                 if igsn := igsn_pattern.match(part):
                     metadata["igsn"] = igsn.group(0).upper()
+                    metadata.update(parse_date(part))
                     break
             suffix = datafile.full_filepath.suffix.lower()
             df = None
