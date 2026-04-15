@@ -12,10 +12,9 @@ class HelixOtherDataGirderUploader(GirderUploadStreamProcessor):
         metadata = {}
         filename = datafile.full_filepath.stem
         try:
-            for part in filename.split("_"):
-                if igsn_pattern.match(part):
-                    metadata["igsn"] = part.upper()
-                    break
+            part = filename.split("_")[-1]
+            if igsn_pattern.match(part):
+                metadata["igsn"] = part.upper()
         except Exception as exc:
             msg = f"Error processing file path for metadata extraction: {exc}"
             self.logger.error(msg, exc_info=exc)
