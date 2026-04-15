@@ -1,4 +1,1 @@
 openmsistream>=1.8.7
-pandas
-openpyxl
-python-dateutil
