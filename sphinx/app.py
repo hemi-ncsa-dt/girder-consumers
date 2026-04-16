@@ -1,75 +1,27 @@
 import os
-import re
+
 from openmsistream.girder.girder_upload_stream_processor import (
     GirderUploadStreamProcessor,
 )
 
-igsn_pattern = re.compile(r"^[A-Z]{6}[0-9]{5}[A-Z0-9\-]*$", re.IGNORECASE)
+from common.base import extract_igsn, parse_date, run_uploader
 
 
 class SphinxGirderUploader(GirderUploadStreamProcessor):
     def _process_downloaded_data_file(self, datafile, lock):
-        metadata = None
-        filename = datafile.full_filepath.name
-        try:
-            igsn = filename.split("_")[0].upper()
-            if igsn_pattern.match(igsn):
-                metadata = {"igsn": igsn}
-        except Exception as exc:
-            msg = f"Error processing file path for metadata extraction: {exc}"
-            self.logger.error(msg, exc_info=exc)
-            pass
+        metadata = {}
+        if igsn := extract_igsn(datafile.full_filepath):
+            metadata["igsn"] = igsn
+        metadata.update(parse_date(str(datafile.full_filepath), self.logger))
+
         return self._GirderUploadStreamProcessor__process_downloaded_data_file(
-            datafile, metadata=metadata
+            datafile, metadata=metadata or None
         )
 
 
 def main():
-    girder_api_url = os.getenv("GIRDER_API_URL")
-    girder_api_key = os.getenv("GIRDER_API_KEY")
-    girder_folder_id = os.getenv("GIRDER_FOLDER_ID")
-    config_file = os.getenv("CONFIG_FILE")
-    mode = os.getenv("MODE", "disk")
-    topic_name = os.getenv("TOPIC_NAME")
-    heartbeat_topic_name = os.getenv("HEARTBEAT_TOPIC_NAME")
-    heartbeat_program_id = os.getenv("HEARTBEAT_PROGRAM_ID")
     replace_existing = os.getenv("REPLACE_EXISTING", "true").lower() == "true"
-
-    girder_uploader = SphinxGirderUploader(
-        girder_api_url,
-        girder_api_key,
-        config_file,
-        topic_name,
-        girder_root_folder_id=girder_folder_id,
-        heartbeat_topic_name=heartbeat_topic_name,
-        heartbeat_program_id=heartbeat_program_id,
-        heartbeat_interval_secs=120,
-        mode=mode,
-        replace_existing=replace_existing,
-    )
-    # start the processor running
-    msg = (
-        f"Listening to the {topic_name} topic for files to upload to "
-        f"Girder using the API at {girder_api_url}"
-    )
-    girder_uploader.logger.info(msg)
-    (
-        n_read,
-        n_msgs_procd,
-        n_files_procd,
-        procd_fps,
-    ) = girder_uploader.process_files_as_read()
-    # shut down when that function returns
-    girder_uploader.close()
-    msg = "Girder upload stream processor "
-    msg += "shut down"
-    girder_uploader.logger.info(msg)
-    msg = (
-        f"{n_read} total messages were consumed, {n_msgs_procd} messages were "
-        f"successfully processed, and {n_files_procd} files were uploaded "
-        f"to Girder"
-    )
-    girder_uploader.logger.info(msg)
+    run_uploader(SphinxGirderUploader, replace_existing=replace_existing)
 
 
 if __name__ == "__main__":

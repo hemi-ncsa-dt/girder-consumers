@@ -1,2 +1,5 @@
 venv
 *ala*
+__pycache__
+*.config
+*.sh
