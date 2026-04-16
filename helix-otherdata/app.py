@@ -1,5 +1,8 @@
 import os
 import re
+
+import dateutil.parser
+import pandas as pd
 from openmsistream.girder.girder_upload_stream_processor import (
     GirderUploadStreamProcessor,
 )
@@ -7,20 +10,45 @@ from openmsistream.girder.girder_upload_stream_processor import (
 igsn_pattern = re.compile(r"^[A-Z]{6}[0-9]{5}[A-Z0-9\-]*$", re.IGNORECASE)
 
 
+def parse_date(folder_name, logger):
+    metadata = {}
+    try:
+        igsn, _, _, _, date, time = folder_name.split("_")
+        metadata["experiment_date"] = dateutil.parser.parse(
+            f"{date} {time.replace('-', ':')}+00:00"
+        ).isoformat()
+    except Exception as exc:
+        msg = f"Error parsing date and time from file path: {exc}"
+        logger.error(msg, exc_info=exc)
+    finally:
+        return metadata
+
+
 class HelixOtherDataGirderUploader(GirderUploadStreamProcessor):
     def _process_downloaded_data_file(self, datafile, lock):
         metadata = {}
-        filename = datafile.full_filepath.stem
         try:
-            part = filename.split("_")[-1]
-            if igsn_pattern.match(part):
-                metadata["igsn"] = part.upper()
+            for part in datafile.full_filepath.parts:
+                if igsn := igsn_pattern.match(part.split("_")[0]):
+                    metadata["igsn"] = igsn.group(0).upper()
+                    metadata.update(parse_date(part))
+                    break
+            suffix = datafile.full_filepath.suffix.lower()
+            df = None
+            if suffix == ".csv":
+                df = pd.read_csv(datafile.full_filepath)
+            elif suffix in [".xls", ".xlsx"]:
+                df = pd.read_excel(datafile.full_filepath)
+
+            if df is not None:
+                if (
+                    "Sample_IGSN" in df.columns or "Sample_ID" in df.columns
+                ) and "PDV_FileName" in df.columns:
+                    metadata["data_type"] = "pdv_experiment_log"
         except Exception as exc:
             msg = f"Error processing file path for metadata extraction: {exc}"
             self.logger.error(msg, exc_info=exc)
-        suffix = datafile.full_filepath.suffix.lower()
-        if suffix in [".csv", ".xls", ".xlsx"]:
-            metadata["data_type"] = "pdv_experiment_log"
+            pass
         return self._GirderUploadStreamProcessor__process_downloaded_data_file(
             datafile, metadata=metadata or None
         )
