@@ -5,9 +5,10 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY requirements.txt .
+COPY helix/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-COPY app.py .
+COPY common/ ./common/
+COPY helix/app.py .
 
 ENTRYPOINT ["/usr/bin/tini", "-g", "--"]
 CMD ["python", "app.py"]

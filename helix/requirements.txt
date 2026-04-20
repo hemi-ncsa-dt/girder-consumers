@@ -1,1 +1,2 @@
 openmsistream>=1.8.7
+python-dateutil
