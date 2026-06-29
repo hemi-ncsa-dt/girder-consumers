@@ -16,7 +16,11 @@ def extract_igsn(filepath):
     Returns the IGSN string (upper-cased) or ``None`` if not found.
     """
     for part in filepath.parts:
-        candidate = part.split("_")[0]
+        try:
+            candidate = part.split("--")[1]  # old HELIX osciloscope
+        except IndexError:
+            candidate = part
+        candidate = candidate.split("_")[0]
         if igsn_pattern.match(candidate):
             return candidate.upper()
     return None
