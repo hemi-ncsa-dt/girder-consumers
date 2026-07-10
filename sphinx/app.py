@@ -10,6 +10,10 @@ from common.base import extract_igsn, parse_date, run_uploader
 class SphinxGirderUploader(GirderUploadStreamProcessor):
     def _process_downloaded_data_file(self, datafile, lock):
         metadata = {}
+        if datafile.full_filepath.suffix.upper() == ".NMD":
+            metadata["data_type"] = "nmd_raw"
+        if datafile.full_filepath.suffix.upper() == ".NMPROJ":
+            metadata["data_type"] = "nmd_project"
         if igsn := extract_igsn(datafile.full_filepath):
             metadata["igsn"] = igsn
         metadata.update(parse_date(str(datafile.full_filepath), self.logger))
