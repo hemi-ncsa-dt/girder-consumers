@@ -93,3 +93,76 @@ def run_uploader(cls, **extra_kwargs):
         f"successfully processed, and {n_files_procd} files were uploaded "
         f"to Girder"
     )
+
+
+# --- tabular content sniffing -------------------------------------------------
+
+_TABULAR_SUFFIXES = (".csv", ".xls", ".xlsx")
+
+# Strip parenthesised unit annotations, then squash anything that isn't
+# alphanumeric into single underscores: "Flyer_Thickness (um)" -> "flyer_thickness",
+# "PDV_10_FileName" -> "pdv_10_filename", "Sample material" -> "sample_material".
+_units_pattern = re.compile(r"\([^)]*\)")
+_non_alnum_pattern = re.compile(r"[^0-9a-z]+")
+
+
+def normalize_column(name):
+    """Return a canonical, comparable form of a spreadsheet column name."""
+    name = _units_pattern.sub(" ", str(name).lower())
+    return _non_alnum_pattern.sub("_", name).strip("_")
+
+
+def read_table_columns(filepath, logger=None):
+    """Return the normalized column names of a tabular file, or ``None``.
+
+    Only the header row is parsed, so this is cheap regardless of file size.
+    ``None`` means "not a tabular file, or unreadable" - both of which simply
+    mean "no content-based data_type".
+    """
+    suffix = filepath.suffix.lower()
+    if suffix not in _TABULAR_SUFFIXES:
+        return None
+    import pandas as pd  # local: only helix-otherdata depends on pandas
+
+    try:
+        reader = pd.read_csv if suffix == ".csv" else pd.read_excel
+        return [normalize_column(col) for col in reader(filepath, nrows=0).columns]
+    except Exception as exc:
+        if logger is not None:
+            msg = f"Could not read header of '{filepath}': {exc}"
+            logger.error(msg, exc_info=exc)
+        return None
+
+
+# Content signatures, most specific first. Each entry is
+# ``(data_type, (required_group, ...))`` and matches when *every* group has at
+# least one column whose normalized name fully matches the group's pattern.
+# Adding support for a new spreadsheet generation should be a matter of
+# loosening a pattern here rather than editing a consumer.
+COLUMN_SIGNATURES = (
+    (
+        "pdv_experiment_log",
+        (
+            r"sample_(igsn|id)",
+            # single-probe logs use PDV_FileName; multi-probe (MPDV) logs use
+            # per-channel PDV_<n>_FileName columns.
+            r"pdv(_\d+)?_file_?name",
+        ),
+    ),
+)
+
+_compiled_signatures = tuple(
+    (data_type, tuple(re.compile(p) for p in patterns))
+    for data_type, patterns in COLUMN_SIGNATURES
+)
+
+
+def detect_data_type(filepath, logger=None):
+    """Classify a tabular file by its columns. Returns a data_type or ``None``."""
+    columns = read_table_columns(filepath, logger)
+    if not columns:
+        return None
+    for data_type, patterns in _compiled_signatures:
+        if all(any(p.fullmatch(col) for col in columns) for p in patterns):
+            return data_type
+    return None
