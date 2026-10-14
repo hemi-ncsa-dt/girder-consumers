@@ -5,7 +5,7 @@ from openmsistream.girder.girder_upload_stream_processor import (
 from common.base import extract_igsn, parse_date, run_uploader
 
 
-class VisionGirderUploader(GirderUploadStreamProcessor):
+class ControlsVisionGirderUploader(GirderUploadStreamProcessor):
     def _process_downloaded_data_file(self, datafile, lock):
         metadata = {"data_type": "vision_data"}
         # IGSN comes from the folder(s) the file sits in, not the file name
@@ -18,7 +18,7 @@ class VisionGirderUploader(GirderUploadStreamProcessor):
 
 
 def main():
-    run_uploader(VisionGirderUploader)
+    run_uploader(ControlsVisionGirderUploader)
 
 
 if __name__ == "__main__":

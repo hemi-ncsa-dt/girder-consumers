@@ -5,10 +5,10 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY vision/requirements.txt .
+COPY controls-vision/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY common/ ./common/
-COPY vision/app.py .
+COPY controls-vision/app.py .
 
 ENTRYPOINT ["/usr/bin/tini", "-g", "--"]
 CMD ["python", "app.py"]
