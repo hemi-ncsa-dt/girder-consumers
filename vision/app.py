@@ -11,6 +11,8 @@ class VisionGirderUploader(GirderUploadStreamProcessor):
         # IGSN comes from the folder(s) the file sits in, not the file name
         if igsn := extract_igsn(datafile.full_filepath.parent):
             metadata["igsn"] = igsn
+        else:
+            metadata["igsn"] = "JHABOX00000"
         metadata.update(parse_date(str(datafile.full_filepath), self.logger))
         return self._GirderUploadStreamProcessor__process_downloaded_data_file(
             datafile, metadata=metadata
